@@ -4,150 +4,46 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NVIDIA Gemma Chatbot</title>
+  <title>AI Chatbot</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f4f4f4;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      margin: 0;
-    }
-    #chat-container {
-      width: 400px;
-      height: 500px;
-      background: white;
-      border-radius: 10px;
-      display: flex;
-      flex-direction: column;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-    }
-    #messages {
-      flex: 1;
-      padding: 10px;
-      overflow-y: auto;
-      font-size: 14px;
-    }
-    .message {
-      margin: 6px 0;
-      padding: 8px;
-      border-radius: 6px;
-      max-width: 80%;
-      word-wrap: break-word;
-    }
-    .user {
-      background: #007bff;
-      color: white;
-      align-self: flex-end;
-    }
-    .bot {
-      background: #e5e5e5;
-      color: black;
-      align-self: flex-start;
-      white-space: pre-wrap;
-    }
-    #input-container {
-      display: flex;
-      border-top: 1px solid #ddd;
-    }
-    #user-input {
-      flex: 1;
-      border: none;
-      padding: 10px;
-      font-size: 16px;
-    }
-    #send-btn {
-      background: #007bff;
-      color: white;
-      border: none;
-      padding: 10px 15px;
-      cursor: pointer;
-    }
+    body { font-family: Arial; background: #f5f5f5; padding: 20px; }
+    #chatbox { background: #fff; padding: 10px; border-radius: 8px; height: 400px; overflow-y: auto; margin-bottom: 10px; }
+    .user { color: blue; font-weight: bold; }
+    .bot { color: green; font-weight: bold; }
+    #inputArea { display: flex; gap: 5px; }
+    input { flex: 1; padding: 8px; }
+    button { padding: 8px; }
   </style>
 </head>
 <body>
-  <div id="chat-container">
-    <div id="messages"></div>
-    <div id="input-container">
-      <input type="text" id="user-input" placeholder="Type a message...">
-      <button id="send-btn">Send</button>
-    </div>
+  <h2>AI Chatbot</h2>
+  <div id="chatbox"></div>
+  <div id="inputArea">
+    <input type="text" id="userInput" placeholder="Type your message...">
+    <button onclick="sendMessage()">Send</button>
   </div>
 
   <script>
-    const messagesDiv = document.getElementById("messages");
-    const userInput = document.getElementById("user-input");
-    const sendBtn = document.getElementById("send-btn");
-
-    function addMessage(text, sender) {
-      const msg = document.createElement("div");
-      msg.classList.add("message", sender);
-      msg.innerText = text;
-      messagesDiv.appendChild(msg);
-      messagesDiv.scrollTop = messagesDiv.scrollHeight;
-      return msg;
-    }
-
     async function sendMessage() {
-      const text = userInput.value.trim();
-      if (!text) return;
-      addMessage(text, "user");
-      userInput.value = "";
+      const input = document.getElementById('userInput');
+      const message = input.value.trim();
+      if (!message) return;
 
-      const botMsg = addMessage("...", "bot");
+      const chatbox = document.getElementById('chatbox');
+      chatbox.innerHTML += `<div class="user">You: ${message}</div>`;
+      input.value = '';
 
-      const response = await fetch("/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text })
+      const response = await fetch('/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message })
       });
 
-      if (!response.ok) {
-        botMsg.innerText = "Error: " + response.statusText;
-        return;
-      }
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let fullText = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        const chunk = decoder.decode(value, { stream: true });
-        fullText += chunk;
-        botMsg.innerText = fullText; // Live update as stream arrives
-        messagesDiv.scrollTop = messagesDiv.scrollHeight;
-      }
+      const data = await response.json();
+      const reply = data.choices?.[0]?.message?.content || "No response";
+      chatbox.innerHTML += `<div class="bot">Bot: ${reply}</div>`;
+      chatbox.scrollTop = chatbox.scrollHeight;
     }
-
-    sendBtn.addEventListener("click", sendMessage);
-    userInput.addEventListener("keypress", (e) => {
-      if (e.key === "Enter") sendMessage();
-    });
-  </script>
-</body>
-</html>        const data = await response.json();
-        messagesDiv.lastChild.remove(); // Remove "Typing..."
-
-        if (data.error) {
-          addMessage("Error: " + data.error, "bot");
-        } else {
-          const botReply = data.choices[0].message.content;
-          addMessage(botReply, "bot");
-        }
-      } catch (err) {
-        messagesDiv.lastChild.remove();
-        addMessage("Error: Unable to connect to server", "bot");
-      }
-    }
-
-    sendBtn.addEventListener("click", sendMessage);
-    userInput.addEventListener("keypress", (e) => {
-      if (e.key === "Enter") sendMessage();
-    });
   </script>
 </body>
 </html>
