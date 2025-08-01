@@ -28,6 +28,7 @@
       flex: 1;
       padding: 10px;
       overflow-y: auto;
+      font-size: 14px;
     }
     .message {
       margin: 6px 0;
@@ -45,6 +46,7 @@
       background: #e5e5e5;
       color: black;
       align-self: flex-start;
+      white-space: pre-wrap;
     }
     #input-container {
       display: flex;
@@ -85,6 +87,7 @@
       msg.innerText = text;
       messagesDiv.appendChild(msg);
       messagesDiv.scrollTop = messagesDiv.scrollHeight;
+      return msg;
     }
 
     async function sendMessage() {
@@ -93,16 +96,40 @@
       addMessage(text, "user");
       userInput.value = "";
 
-      addMessage("Typing...", "bot");
+      const botMsg = addMessage("...", "bot");
 
-      try {
-        const response = await fetch("/chat", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ messages: [{ role: "user", content: text }] })
-        });
+      const response = await fetch("/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: text })
+      });
 
-        const data = await response.json();
+      if (!response.ok) {
+        botMsg.innerText = "Error: " + response.statusText;
+        return;
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let fullText = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value, { stream: true });
+        fullText += chunk;
+        botMsg.innerText = fullText; // Live update as stream arrives
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+      }
+    }
+
+    sendBtn.addEventListener("click", sendMessage);
+    userInput.addEventListener("keypress", (e) => {
+      if (e.key === "Enter") sendMessage();
+    });
+  </script>
+</body>
+</html>        const data = await response.json();
         messagesDiv.lastChild.remove(); // Remove "Typing..."
 
         if (data.error) {
