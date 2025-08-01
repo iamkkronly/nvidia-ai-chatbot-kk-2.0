@@ -16,11 +16,15 @@ const __dirname = path.dirname(__filename);
 
 app.use(express.json());
 
-// ✅ Serve index.html explicitly at root
+// ✅ Serve static files from current folder
+app.use(express.static(__dirname));
+
+// ✅ Always serve index.html for root
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "index.html"));
 });
 
+// ✅ Chat API endpoint
 app.post("/chat", async (req, res) => {
   try {
     const { messages } = req.body;
@@ -41,14 +45,19 @@ app.post("/chat", async (req, res) => {
 
     if (!response.ok) {
       const errText = await response.text();
-      return res.status(response.status).send({ error: errText });
+      return res.status(response.status).json({ error: errText });
     }
 
     const data = await response.json();
     res.json(data);
   } catch (err) {
-    res.status(500).send({ error: err.message });
+    res.status(500).json({ error: err.message });
   }
+});
+
+// ✅ Fallback: send index.html for ANY unknown route
+app.use((req, res) => {
+  res.sendFile(path.join(__dirname, "index.html"));
 });
 
 app.listen(PORT, () => console.log(`✅ Server running at http://localhost:${PORT}`));
