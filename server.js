@@ -9,13 +9,17 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 const API_URL = "https://integrate.api.nvidia.com/v1/chat/completions";
-// ✅ Your NVIDIA API Key (hardcoded)
 const API_KEY = "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";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 app.use(express.json());
-app.use(express.static(__dirname)); // serve index.html
+
+// ✅ Serve index.html explicitly at root
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "index.html"));
+});
 
 app.post("/chat", async (req, res) => {
   try {
