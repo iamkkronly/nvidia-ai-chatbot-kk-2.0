@@ -10,7 +10,7 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 // ✅ NVIDIA API key
-const NVIDIA_API_KEY = "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";
+const NVIDIA_API_KEY = "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";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
