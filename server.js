@@ -18,9 +18,10 @@ const __dirname = path.dirname(__filename);
 app.use(cors());
 app.use(express.json());
 
-// Global chat history (shared for demo)
+// Global chat history
 let chatHistory = [];
 
+// Serve the frontend
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
@@ -28,14 +29,20 @@ app.get('/', (req, res) => {
 const invokeUrl = "https://integrate.api.nvidia.com/v1/chat/completions";
 const stream = false;
 
+// Function to clean AI response
+function cleanResponse(text) {
+  if (!text) return "";
+  return text.replace(/^["*]+|["*]+$/g, '').trim();
+}
+
 app.post('/chat', async (req, res) => {
   try {
     const userMessage = req.body.message || "";
 
-    // Add user message to history
+    // Add user message to memory
     chatHistory.push({ role: "user", content: userMessage });
 
-    // ✅ Keep only the last 4 messages
+    // ✅ Keep only last 4 messages
     if (chatHistory.length > 4) {
       chatHistory = chatHistory.slice(chatHistory.length - 4);
     }
@@ -57,9 +64,12 @@ app.post('/chat', async (req, res) => {
     };
 
     const response = await axios.post(invokeUrl, payload, { headers });
-    const botReply = response.data.choices?.[0]?.message?.content || "No response";
+    let botReply = response.data.choices?.[0]?.message?.content || "No response";
 
-    // Add bot reply to history
+    // ✅ Clean AI response
+    botReply = cleanResponse(botReply);
+
+    // Add bot reply to memory
     chatHistory.push({ role: "assistant", content: botReply });
 
     // ✅ Keep only last 4 messages again
@@ -67,6 +77,8 @@ app.post('/chat', async (req, res) => {
       chatHistory = chatHistory.slice(chatHistory.length - 4);
     }
 
+    // Send cleaned response
+    response.data.choices[0].message.content = botReply;
     res.json(response.data);
 
   } catch (error) {
