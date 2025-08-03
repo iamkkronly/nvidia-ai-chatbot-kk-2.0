@@ -9,7 +9,7 @@ import { fileURLToPath } from 'url';
 const app = express();
 const port = process.env.PORT || 3000;
 
-// ✅ NVIDIA API key directly included
+// ✅ NVIDIA API key
 const NVIDIA_API_KEY = "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";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -18,7 +18,9 @@ const __dirname = path.dirname(__filename);
 app.use(cors());
 app.use(express.json());
 
-// Serve index.html
+// Global chat history (shared for demo)
+let chatHistory = [];
+
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
@@ -30,9 +32,17 @@ app.post('/chat', async (req, res) => {
   try {
     const userMessage = req.body.message || "";
 
+    // Add user message to history
+    chatHistory.push({ role: "user", content: userMessage });
+
+    // ✅ Keep only the last 4 messages
+    if (chatHistory.length > 4) {
+      chatHistory = chatHistory.slice(chatHistory.length - 4);
+    }
+
     const payload = {
       "model": "google/gemma-3n-e4b-it",
-      "messages": [{"role":"user","content": userMessage}],
+      "messages": chatHistory,
       "max_tokens": 512,
       "temperature": 0.20,
       "top_p": 0.70,
@@ -47,10 +57,20 @@ app.post('/chat', async (req, res) => {
     };
 
     const response = await axios.post(invokeUrl, payload, { headers });
+    const botReply = response.data.choices?.[0]?.message?.content || "No response";
+
+    // Add bot reply to history
+    chatHistory.push({ role: "assistant", content: botReply });
+
+    // ✅ Keep only last 4 messages again
+    if (chatHistory.length > 4) {
+      chatHistory = chatHistory.slice(chatHistory.length - 4);
+    }
+
     res.json(response.data);
 
   } catch (error) {
-    console.error(error.message);
+    console.error("❌ Error:", error.message);
     res.status(500).json({ error: "Server error" });
   }
 });
